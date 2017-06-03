@@ -1,0 +1,31 @@
+{
+    "name": "yireo/magento2-backend-reindexer",
+    "license": "OSL-3",
+    "type": "magento2-module",
+    "version": "0.0.1",
+    "homepage": "https://github.com/yireo/magento2-backend-reindexer",
+    "description": "Magento 2 module to add reindexing to the Admin Panel",
+    "keywords":[ "composer-installer", "magento"],
+    "authors": [
+        {
+            "name": "Jisse Reitsma (Yireo)",
+            "email": "jisse@yireo.com"
+        }
+    ],
+    "require": {
+        "magento/framework": "100.*",
+        "php": ">=7.0.0"
+    },
+    "require-dev":{
+        "phpunit/phpunit":"*",
+        "composer/composer":"*@dev"
+    },
+    "autoload": {
+        "psr-4": {
+            "Yireo\\BackendReindexer\\": ""
+        },        
+        "files": [
+            "registration.php"
+        ]
+    }
+}
