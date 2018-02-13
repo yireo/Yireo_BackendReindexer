@@ -1,6 +1,6 @@
 {
     "name": "yireo/magento2-backend-reindexer",
-    "license": "OSL-3",
+    "license": "OSL-3.0",
     "type": "magento2-module",
     "version": "0.0.3",
     "homepage": "https://github.com/yireo/magento2-backend-reindexer",
