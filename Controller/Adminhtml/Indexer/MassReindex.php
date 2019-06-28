@@ -1,5 +1,15 @@
 <?php
+declare(strict_types=1);
+
 namespace Yireo\BackendReindexer\Controller\Adminhtml\Indexer;
+
+use Exception;
+use Magento\Backend\App\Action\Context;
+use Magento\Framework\Controller\ResultInterface;
+use Magento\Framework\Exception\LocalizedException;
+use Magento\Framework\Indexer\IndexerRegistry;
+use Magento\Indexer\Model\Indexer;
+use Throwable;
 
 /**
  * Class MassReindex
@@ -14,19 +24,26 @@ class MassReindex extends \Magento\Backend\App\Action
     const ADMIN_RESOURCE = 'Yireo_BackendIndexer::reindex';
 
     /**
-     * @var \Magento\Framework\Indexer\IndexerRegistry
+     * @var IndexerRegistry
      */
     protected $indexerRegistry;
 
+    /**
+     * MassReindex constructor.
+     * @param IndexerRegistry $indexerRegistry
+     * @param Context $context
+     */
     public function __construct(
-        \Magento\Framework\Indexer\IndexerRegistry $indexerRegistry,
-        \Magento\Backend\App\Action\Context $context
-    ){
+        IndexerRegistry $indexerRegistry,
+        Context $context
+    ) {
         $this->indexerRegistry = $indexerRegistry;
         return parent::__construct($context);
     }
 
-
+    /**
+     * @return ResultInterface
+     */
     public function execute()
     {
         $indexerIds = $this->getRequest()->getParam('indexer_ids');
@@ -40,7 +57,7 @@ class MassReindex extends \Magento\Backend\App\Action
      *
      * @return bool
      */
-    protected function reindexAll(array $indexerIds) : bool
+    protected function reindexAll(array $indexerIds): bool
     {
         if (!is_array($indexerIds)) {
             $this->messageManager->addErrorMessage(__('Please select one or two indices.'));
@@ -56,13 +73,14 @@ class MassReindex extends \Magento\Backend\App\Action
 
     /**
      * @param string $indexerId
+     * @throws Throwable
      */
     protected function reindex(string $indexerId)
     {
         $startTime = microtime(true);
 
         try {
-            /** @var \Magento\Indexer\Model\Indexer $indexer */
+            /** @var Indexer $indexer */
             $indexer = $this->indexerRegistry->get($indexerId);
             $indexer->reindexAll();
             $totalTime = microtime(true) - $startTime;
@@ -71,11 +89,11 @@ class MassReindex extends \Magento\Backend\App\Action
             $message = sprintf(__('%s was reindexed in %s seconds'), $indexer->getTitle(), $totalTime);
             $this->messageManager->addSuccessMessage($message);
 
-        } catch (\Magento\Framework\Exception\LocalizedException $e) {
+        } catch (LocalizedException $e) {
             $message = sprintf(__('%s indexer process exception'), $indexer->getTitle());
             $this->messageManager->addErrorMessage($message, $e);
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $this->messageManager->addExceptionMessage($e, $e->getMessage());
         }
     }
@@ -83,7 +101,7 @@ class MassReindex extends \Magento\Backend\App\Action
     /**
      * @return bool
      */
-    protected function _isAllowed() : bool
+    protected function _isAllowed(): bool
     {
         return $this->_authorization->isAllowed(self::ADMIN_RESOURCE);
     }

@@ -1,5 +1,10 @@
 <?php
+declare(strict_types=1);
+
 namespace Yireo\BackendReindexer\Plugin;
+
+use Magento\Framework\AuthorizationInterface;
+use Magento\Indexer\Block\Backend\Grid\ItemsUpdater;
 
 /**
  * Class MassindexAcl
@@ -7,29 +12,28 @@ namespace Yireo\BackendReindexer\Plugin;
 class MassindexAcl
 {
     /**
-     * @var \Magento\Framework\AuthorizationInterface
+     * @var AuthorizationInterface
      */
     protected $authorization;
 
     /**
-     * @param \Magento\Framework\AuthorizationInterface $authorization
+     * @param AuthorizationInterface $authorization
      */
-    public function __construct(\Magento\Framework\AuthorizationInterface $authorization)
+    public function __construct(AuthorizationInterface $authorization)
     {
         $this->authorization = $authorization;
     }
 
     /**
-     * @param \Magento\Indexer\Block\Backend\Grid\ItemsUpdater $subject
+     * @param ItemsUpdater $subject
      * @param $argument
      *
      * @return mixed
      */
     public function afterUpdate(
-        \Magento\Indexer\Block\Backend\Grid\ItemsUpdater $subject,
+        ItemsUpdater $subject,
         $argument
-    )
-    {
+    ) {
         if ($this->authorization->isAllowed('Yireo_BackendIndexer::reindex') === false) {
             unset($argument['reindex']);
         }
