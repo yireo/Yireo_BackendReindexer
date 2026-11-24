@@ -5,7 +5,9 @@
             <resource id="Magento_Backend::admin">
                 <resource id="Magento_Backend::system">
                     <resource id="Magento_Backend::tools">
-                        <resource id="Yireo_BackendReindexer::reindex" title="Yireo Backend Reindexer" translate="title" sortOrder="50" />
+                        <resource id="Magento_Indexer::index">
+                            <resource id="Yireo_BackendReindexer::reindex" title="Yireo Backend Reindexer" translate="title" sortOrder="50" />
+                        </resource>
                     </resource>
                 </resource>
             </resource>
