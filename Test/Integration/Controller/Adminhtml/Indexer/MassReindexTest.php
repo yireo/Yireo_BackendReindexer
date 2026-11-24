@@ -5,6 +5,7 @@ namespace Yireo\BackendReindexer\Test\Integration\Controller\Adminhtml\Indexer;
 
 use Magento\Framework\Acl\Builder as AclBuilder;
 use Magento\Framework\App\Request\Http as HttpRequest;
+use Magento\Framework\App\Response\Http as HttpResponse;
 use Magento\Framework\Escaper;
 use Magento\Framework\Indexer\ConfigInterface as IndexerConfig;
 use Magento\Framework\Indexer\IndexerInterface;
@@ -36,18 +37,18 @@ class MassReindexTest extends AbstractBackendController
 
     public function testGetRequestIsRejected(): void
     {
-        $this->getRequest()->setMethod(HttpRequest::METHOD_GET);
-        $this->getRequest()->setParam('indexer_ids', ['design_config_grid']);
+        $this->getHttpRequest()->setMethod(HttpRequest::METHOD_GET);
+        $this->getHttpRequest()->setParam('indexer_ids', ['design_config_grid']);
         $this->dispatch(self::URI);
 
-        $this->assertSame('noroute', $this->getRequest()->getControllerName());
+        $this->assertSame('noroute', $this->getHttpRequest()->getControllerName());
         $this->assertSessionMessages($this->isEmpty(), MessageInterface::TYPE_SUCCESS);
     }
 
     public function testPostWithInvalidFormKeyIsRejected(): void
     {
-        $this->getRequest()->setMethod(HttpRequest::METHOD_POST);
-        $this->getRequest()->setPostValue(['form_key' => 'invalid', 'indexer_ids' => ['design_config_grid']]);
+        $this->getHttpRequest()->setMethod(HttpRequest::METHOD_POST);
+        $this->getHttpRequest()->setPostValue(['form_key' => 'invalid', 'indexer_ids' => ['design_config_grid']]);
         $this->dispatch(self::URI);
 
         $this->assertRedirect();
@@ -60,13 +61,13 @@ class MassReindexTest extends AbstractBackendController
     public function testAccessDeniedWithoutIndexManagementResource(): void
     {
         $acl = $this->_objectManager->get(AclBuilder::class)->getAcl();
-        $roles = $this->_auth->getUser()->getRoles();
+        $roles = $this->getAdminRoles();
         $acl->deny($roles, 'Magento_Indexer::index');
         $acl->allow($roles, $this->resource);
 
         $this->postIndexerIds(['design_config_grid']);
 
-        $this->assertSame(403, $this->getResponse()->getHttpResponseCode());
+        $this->assertSame(403, $this->getHttpResponse()->getHttpResponseCode());
     }
 
     /**
@@ -155,7 +156,7 @@ class MassReindexTest extends AbstractBackendController
     public function testMassActionOptionIsRemovedWithoutAclResource(): void
     {
         $acl = $this->_objectManager->get(AclBuilder::class)->getAcl();
-        $acl->deny($this->_auth->getUser()->getRoles(), $this->resource);
+        $acl->deny($this->getAdminRoles(), $this->resource);
 
         $result = $this->_objectManager->get(ItemsUpdater::class)->update(['reindex' => ['label' => 'Reindex']]);
 
@@ -164,11 +165,35 @@ class MassReindexTest extends AbstractBackendController
 
     private function postIndexerIds(mixed $indexerIds): void
     {
-        $this->getRequest()->setMethod(HttpRequest::METHOD_POST);
+        $this->getHttpRequest()->setMethod(HttpRequest::METHOD_POST);
         if ($indexerIds !== null) {
-            $this->getRequest()->setPostValue('indexer_ids', $indexerIds);
+            $this->getHttpRequest()->setPostValue('indexer_ids', $indexerIds);
         }
 
         $this->dispatch(self::URI);
+    }
+
+    private function getHttpRequest(): HttpRequest
+    {
+        $request = $this->getRequest();
+        $this->assertInstanceOf(HttpRequest::class, $request);
+
+        return $request;
+    }
+
+    private function getHttpResponse(): HttpResponse
+    {
+        $response = $this->getResponse();
+        $this->assertInstanceOf(HttpResponse::class, $response);
+
+        return $response;
+    }
+
+    private function getAdminRoles(): array
+    {
+        /** @var \Magento\User\Model\User $user */
+        $user = $this->_auth->getUser();
+
+        return $user->getRoles();
     }
 }
