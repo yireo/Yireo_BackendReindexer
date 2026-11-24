@@ -19,7 +19,8 @@
         "magento/framework": "^100.1|^101.0|^102.0|^103.0",
         "magento/module-backend": "^100.1|^101.0|^102.0",
         "magento/module-indexer": "^100.4",
-        "php": ">=8.2 <8.6"
+        "php": ">=8.2 <8.6",
+        "psr/log": "^1 || ^2 || ^3"
     },
     "autoload": {
         "psr-4": {
