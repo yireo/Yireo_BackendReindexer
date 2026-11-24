@@ -3,106 +3,89 @@ declare(strict_types=1);
 
 namespace Yireo\BackendReindexer\Controller\Adminhtml\Indexer;
 
-use Exception;
+use Magento\Backend\App\Action;
 use Magento\Backend\App\Action\Context;
+use Magento\Framework\App\Action\HttpPostActionInterface;
 use Magento\Framework\Controller\ResultInterface;
-use Magento\Framework\Exception\LocalizedException;
+use Magento\Framework\Indexer\ConfigInterface as IndexerConfig;
 use Magento\Framework\Indexer\IndexerRegistry;
-use Magento\Indexer\Model\Indexer;
+use Psr\Log\LoggerInterface;
 use Throwable;
 
-/**
- * Class MassReindex
- *
- * @package Yireo\BackendReindexer\Controller\Adminhtml\Indexer
- */
-class MassReindex extends \Magento\Backend\App\Action
+class MassReindex extends Action implements HttpPostActionInterface
 {
-    /**
-     * ACL resource
-     */
-    const ADMIN_RESOURCE = 'Yireo_BackendIndexer::reindex';
+    public const ADMIN_RESOURCE = 'Yireo_BackendReindexer::reindex';
 
-    /**
-     * @var IndexerRegistry
-     */
-    protected $indexerRegistry;
-
-    /**
-     * MassReindex constructor.
-     * @param IndexerRegistry $indexerRegistry
-     * @param Context $context
-     */
     public function __construct(
-        IndexerRegistry $indexerRegistry,
-        Context $context
+        Context $context,
+        private readonly IndexerRegistry $indexerRegistry,
+        private readonly IndexerConfig $indexerConfig,
+        private readonly LoggerInterface $logger,
+        private readonly int $maxIndexersPerRequest = 5
     ) {
-        $this->indexerRegistry = $indexerRegistry;
         parent::__construct($context);
     }
 
-    /**
-     * @return ResultInterface
-     */
-    public function execute()
+    public function execute(): ResultInterface
     {
-        $indexerIds = $this->getRequest()->getParam('indexer_ids');
-        $this->reindexAll($indexerIds);
+        $indexerIds = $this->getValidIndexerIds($this->getRequest()->getParam('indexer_ids'));
 
-        return $this->_redirect('indexer/indexer/list');
+        if (empty($indexerIds)) {
+            $this->messageManager->addErrorMessage((string)__('Please select one or more indexers.'));
+        } elseif (count($indexerIds) > $this->maxIndexersPerRequest) {
+            $this->messageManager->addErrorMessage(
+                (string)__('Please select at most %1 indexers at once.', $this->maxIndexersPerRequest)
+            );
+        } else {
+            foreach ($indexerIds as $indexerId) {
+                $this->reindex($indexerId);
+            }
+        }
+
+        return $this->resultRedirectFactory->create()->setPath('indexer/indexer/list');
     }
 
     /**
-     * @param integer[] $indexerIds
-     *
-     * @return bool
+     * @param mixed $value
+     * @return string[]
      */
-    protected function reindexAll(array $indexerIds): bool
+    private function getValidIndexerIds(mixed $value): array
     {
-        if (!is_array($indexerIds)) {
-            $this->messageManager->addErrorMessage(__('Please select one or two indices.'));
-            return false;
+        if (!is_array($value)) {
+            return [];
         }
 
-        foreach ($indexerIds as $indexerId) {
-            $this->reindex($indexerId);
-        }
+        $knownIndexerIds = array_map('strval', array_keys($this->indexerConfig->getIndexers()));
+        $indexerIds = array_filter(
+            $value,
+            fn ($indexerId) => is_string($indexerId) && in_array($indexerId, $knownIndexerIds, true)
+        );
 
-        return true;
+        return array_values(array_unique($indexerIds));
     }
 
-    /**
-     * @param string $indexerId
-     * @throws Throwable
-     */
-    protected function reindex(string $indexerId)
+    protected function _isAllowed(): bool
+    {
+        return $this->_authorization->isAllowed('Magento_Indexer::index')
+            && $this->_authorization->isAllowed(self::ADMIN_RESOURCE);
+    }
+
+    private function reindex(string $indexerId): void
     {
         $startTime = microtime(true);
 
         try {
-            /** @var Indexer $indexer */
             $indexer = $this->indexerRegistry->get($indexerId);
             $indexer->reindexAll();
-            $totalTime = microtime(true) - $startTime;
-            $totalTime = round($totalTime, 2);
-
-            $message = sprintf((string)__('%s was reindexed in %s seconds'), $indexer->getTitle(), $totalTime);
-            $this->messageManager->addSuccessMessage($message);
-
-        } catch (LocalizedException $e) {
-            $message = sprintf(__('%s indexer process exception'), $indexer->getTitle());
-            $this->messageManager->addErrorMessage($message, $e);
-
-        } catch (Exception $e) {
-            $this->messageManager->addExceptionMessage($e, $e->getMessage());
+            $totalTime = round(microtime(true) - $startTime, 2);
+            $this->messageManager->addSuccessMessage(
+                (string)__('%1 was reindexed in %2 seconds', $indexer->getTitle(), $totalTime)
+            );
+        } catch (Throwable $exception) {
+            $this->logger->critical($exception->getMessage(), ['exception' => $exception]);
+            $this->messageManager->addErrorMessage(
+                (string)__('Reindexing "%1" failed. Check the logs for details.', $indexerId)
+            );
         }
-    }
-
-    /**
-     * @return bool
-     */
-    protected function _isAllowed(): bool
-    {
-        return $this->_authorization->isAllowed(self::ADMIN_RESOURCE);
     }
 }
