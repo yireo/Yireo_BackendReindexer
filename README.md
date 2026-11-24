@@ -7,6 +7,12 @@ From a technical point of view, there is a really good reason that Magento 2 off
 
 The advice is to index through the CLI task and/or through cronjob. However, this module might still prove useful to small shops, testing environments with no developer present, etcetera.
 
+## Security
+- The mass action only accepts POST requests with a valid form key.
+- Access requires both the ACL resources `Magento_Indexer::index` and `Yireo_BackendReindexer::reindex`.
+- Only known indexer IDs are reindexed. At most 5 indexers can be reindexed per request, because every reindex runs synchronously within the web request. Change this limit with the DI argument `maxIndexersPerRequest` of `Yireo\BackendReindexer\Controller\Adminhtml\Indexer\MassReindex`.
+- Errors are logged to `var/log/system.log`, while the Admin Panel only shows a generic message.
+
 ## Installation
 Install this module within Magento 2 using composer:
 
