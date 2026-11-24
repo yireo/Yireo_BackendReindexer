@@ -5,6 +5,7 @@ namespace Yireo\BackendReindexer\Test\Integration\Controller\Adminhtml\Indexer;
 
 use Magento\Framework\Acl\Builder as AclBuilder;
 use Magento\Framework\App\Request\Http as HttpRequest;
+use Magento\Framework\Escaper;
 use Magento\Framework\Indexer\ConfigInterface as IndexerConfig;
 use Magento\Framework\Indexer\IndexerInterface;
 use Magento\Framework\Indexer\IndexerRegistry;
@@ -39,7 +40,8 @@ class MassReindexTest extends AbstractBackendController
         $this->getRequest()->setParam('indexer_ids', ['design_config_grid']);
         $this->dispatch(self::URI);
 
-        $this->assert404NotFound();
+        $this->assertSame('noroute', $this->getRequest()->getControllerName());
+        $this->assertSessionMessages($this->isEmpty(), MessageInterface::TYPE_SUCCESS);
     }
 
     public function testPostWithInvalidFormKeyIsRejected(): void
@@ -134,7 +136,11 @@ class MassReindexTest extends AbstractBackendController
         $this->postIndexerIds(['design_config_grid']);
 
         $this->assertSessionMessages(
-            $this->equalTo([(string)__('Reindexing "%1" failed. Check the logs for details.', 'design_config_grid')]),
+            $this->equalTo([
+                $this->_objectManager->get(Escaper::class)->escapeHtml(
+                    (string)__('Reindexing "%1" failed. Check the logs for details.', 'design_config_grid')
+                ),
+            ]),
             MessageInterface::TYPE_ERROR
         );
     }
