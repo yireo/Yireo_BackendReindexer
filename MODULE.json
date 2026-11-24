@@ -25,5 +25,5 @@
     "components": [],
     "config": [],
     "tests": [],
-    "phpstan_level": "2"
+    "phpstan_level": "5"
 }
