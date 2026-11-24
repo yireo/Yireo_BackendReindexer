@@ -5,7 +5,7 @@
         "Magento_Backend",
         "Magento_Indexer"
     ],
-    "phpcs_severity": "7",
+    "phpcs_severity": "6",
     "php_versions": [
         "8.2",
         "8.3",
