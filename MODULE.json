@@ -24,6 +24,10 @@
     ],
     "components": [],
     "config": [],
-    "tests": [],
+    "tests": {
+        "unit": 0,
+        "integration": 9,
+        "functional": 0
+    },
     "phpstan_level": "5"
 }
